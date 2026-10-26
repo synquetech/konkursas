@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import confetti from "canvas-confetti";
 
-const ITEM_HEIGHT = 58; 
-const VISIBLE_COUNT = 7; 
+const ITEM_HEIGHT = 52; 
+const VISIBLE_COUNT = 5; 
 const CENTER_INDEX = Math.floor(VISIBLE_COUNT / 2);
 
 export default function App() {
@@ -10,13 +10,11 @@ export default function App() {
   const [sukasi, setSukasi] = useState(false);
   const [laimetojas, setLaimetojas] = useState(null);
   const [statusas, setStatusas] = useState("Kraunami komentarai...");
-  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const [juosta, setJuosta] = useState([]);
   const [offsetY, setOffsetY] = useState(0);
 
   const requestRef = useRef(null);
-  const appContainerRef = useRef(null);
 
   useEffect(() => {
     fetch(import.meta.env.BASE_URL + "komentarai.json")
@@ -26,7 +24,7 @@ export default function App() {
       })
       .then((data) => {
         setDalyviai(data);
-        setStatusas(`Iš viso komentarų: ${data.length}`);
+        setStatusas(`Dalyvauja komentarų: ${data.length}`);
         
         if (data.length > 0) {
           let pradinis = [];
@@ -37,31 +35,9 @@ export default function App() {
         }
       })
       .catch(() => {
-        setStatusas("Klaida: patikrinkite, ar 'komentarai.json' yra public aplanke.");
+        setStatusas("Klaida kraunant komentarai.json");
       });
-
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      if (appContainerRef.current?.requestFullscreen) {
-        appContainerRef.current.requestFullscreen();
-      } else if (appContainerRef.current?.webkitRequestFullscreen) {
-        appContainerRef.current.webkitRequestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
-    }
-  };
 
   const suktiLista = () => {
     if (sukasi || dalyviai.length === 0) return;
@@ -69,18 +45,15 @@ export default function App() {
     setSukasi(true);
     setLaimetojas(null);
 
-    // 1. Išrenkamas laimėtojas
     const tikrasLaimetojas = dalyviai[Math.floor(Math.random() * dalyviai.length)];
-
-    // 2. Paruošiama ruletės juosta
-    const zingsniuKiekis = 50; 
+    const zingsniuKiekis = 45; 
     let naujaJuosta = [];
     for (let i = 0; i < zingsniuKiekis; i++) {
       naujaJuosta.push(dalyviai[Math.floor(Math.random() * dalyviai.length)]);
     }
     naujaJuosta.push(tikrasLaimetojas);
 
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 10; i++) {
       naujaJuosta.push(dalyviai[Math.floor(Math.random() * dalyviai.length)]);
     }
 
@@ -89,7 +62,7 @@ export default function App() {
     const targetOffset = zingsniuKiekis * ITEM_HEIGHT;
     setOffsetY(0);
 
-    const animacijosTrukme = 4500;
+    const animacijosTrukme = 4200;
     const pradinisLaikas = performance.now();
     const easeOut = (t) => 1 - Math.pow(1 - t, 4);
 
@@ -103,27 +76,23 @@ export default function App() {
       if (progresas < 1) {
         requestRef.current = requestAnimationFrame(animuoti);
       } else {
-        // Sustojimas tiksliai ties centru
         setOffsetY(targetOffset);
         setSukasi(false);
         setLaimetojas(tikrasLaimetojas);
 
-        // Šventinis saliutas
         confetti({
-          particleCount: 150,
-          spread: 85,
-          origin: { x: 0.72, y: 0.5 }
+          particleCount: 110,
+          spread: 75,
+          origin: { y: 0.6 }
         });
 
-        // Tik dabar, kai atsirado sveikinimas, atidarome nuorodą
         if (tikrasLaimetojas?.nuoroda) {
           setTimeout(() => {
             const naujasLangas = window.open(tikrasLaimetojas.nuoroda, "_blank");
-            // Jei naršyklė blokuotų naują skirtuką be tiesioginio paspaudimo, nukreipiame esamame lange
             if (!naujasLangas || naujasLangas.closed || typeof naujasLangas.closed === "undefined") {
               window.location.href = tikrasLaimetojas.nuoroda;
             }
-          }, 1200);
+          }, 1400);
         }
       }
     };
@@ -132,24 +101,17 @@ export default function App() {
   };
 
   return (
-    <div ref={appContainerRef} style={styles.appWrapper}>
-      {/* Fullscreen mygtukas */}
-      <button onClick={toggleFullscreen} style={styles.fullscreenBtn} title="Visas ekranas">
-        {isFullscreen ? "🗗 Grįžti" : "⛶ Visas ekranas"}
-      </button>
-
+    <div style={styles.appWrapper}>
       <header style={styles.header}>
         <h1 style={styles.title}>MONI MIX Sushi padėklo konkursas 🍣</h1>
         <p style={styles.subtitle}>{statusas}</p>
       </header>
 
       <main style={styles.mainContent}>
-        {/* KAIRĖ: Sąrašo ruletė */}
-        <section style={styles.leftColumn}>
+        <section style={styles.wheelSection}>
           <div style={styles.wheelWrapper}>
             <div style={styles.centerMarkerLeft}>▶</div>
             <div style={styles.centerMarkerRight}>◀</div>
-
             <div style={styles.centerHighlightBox} />
 
             <div style={styles.slotViewport}>
@@ -182,14 +144,11 @@ export default function App() {
           </button>
         </section>
 
-        {/* DEŠINĖ: Laimėtojo kortelė */}
-        <section style={styles.rightColumn}>
+        <section style={styles.resultSection}>
           {laimetojas ? (
             <div style={styles.winnerCard}>
-              <div style={styles.badge}>Laimėtojas rastas!</div>
-              <h2 style={styles.greeting}>
-                Sveikiname, {laimetojas.autorius}!
-              </h2>
+              <div style={styles.badge}>Laimėtojas!</div>
+              <h2 style={styles.greeting}>Sveikiname, {laimetojas.autorius}!</h2>
 
               <div style={styles.commentBox}>
                 <div style={styles.commentLabel}>Komentaras:</div>
@@ -198,11 +157,7 @@ export default function App() {
 
               {laimetojas.medija && (
                 <div style={styles.mediaContainer}>
-                  <img
-                    src={laimetojas.medija}
-                    alt="Prisegtas GIF / foto"
-                    style={styles.media}
-                  />
+                  <img src={laimetojas.medija} alt="GIF" style={styles.media} />
                 </div>
               )}
 
@@ -219,10 +174,9 @@ export default function App() {
             </div>
           ) : (
             <div style={styles.placeholderCard}>
-              <div style={{ fontSize: "48px", marginBottom: "10px" }}>🍣</div>
-              <h3 style={{ margin: "0 0 8px 0", color: "#334155" }}>Laukiama starto...</h3>
-              <p style={{ margin: 0, color: "#94a3b8", fontSize: "14px" }}>
-                Paspauskite „IŠRINKTI LAIMĖTOJĄ“, kad paleistumėte atranką!
+              <div style={{ fontSize: "36px", marginBottom: "6px" }}>🍣</div>
+              <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
+                Spauskite mygtuką ir išrinkite laimėtoją!
               </p>
             </div>
           )}
@@ -234,32 +188,15 @@ export default function App() {
 
 const styles = {
   appWrapper: {
-    height: "100vh",
-    width: "100vw",
-    overflow: "hidden",
+    minHeight: "100vh",
+    width: "100%",
     boxSizing: "border-box",
     backgroundColor: "#f8fafc",
     color: "#0f172a",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     display: "flex",
     flexDirection: "column",
-    padding: "16px 32px",
-    position: "relative"
-  },
-  fullscreenBtn: {
-    position: "absolute",
-    top: "16px",
-    right: "24px",
-    backgroundColor: "#ffffff",
-    border: "1px solid #cbd5e1",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#475569",
-    cursor: "pointer",
-    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-    zIndex: 50
+    padding: "16px 12px 24px 12px"
   },
   header: {
     textAlign: "center",
@@ -267,38 +204,36 @@ const styles = {
     flexShrink: 0
   },
   title: {
-    fontSize: "26px",
+    fontSize: "20px",
     fontWeight: "800",
     margin: "0 0 4px 0",
     color: "#0f172a"
   },
   subtitle: {
-    fontSize: "14px",
+    fontSize: "13px",
     color: "#64748b",
     margin: 0
   },
   mainContent: {
-    flex: 1,
-    display: "grid",
-    gridTemplateColumns: "1.1fr 1fr",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "30px",
-    maxWidth: "1100px",
-    margin: "0 auto",
-    width: "100%",
-    minHeight: 0
-  },
-  leftColumn: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
-    gap: "20px"
+    gap: "16px",
+    width: "100%",
+    maxWidth: "460px",
+    margin: "0 auto"
+  },
+  wheelSection: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    width: "100%",
+    gap: "14px"
   },
   wheelWrapper: {
     position: "relative",
-    width: "380px",
+    width: "100%",
+    maxWidth: "340px",
     height: `${ITEM_HEIGHT * VISIBLE_COUNT}px`,
     display: "flex",
     alignItems: "center",
@@ -307,30 +242,30 @@ const styles = {
   centerHighlightBox: {
     position: "absolute",
     top: `${ITEM_HEIGHT * CENTER_INDEX}px`,
-    left: "15px",
-    right: "15px",
+    left: "8px",
+    right: "8px",
     height: `${ITEM_HEIGHT}px`,
     backgroundColor: "rgba(255, 255, 255, 0.95)",
     border: "2px solid #22c55e",
-    borderRadius: "10px",
-    boxShadow: "0 4px 15px rgba(34, 197, 94, 0.2)",
+    borderRadius: "8px",
+    boxShadow: "0 3px 10px rgba(34, 197, 94, 0.2)",
     pointerEvents: "none",
     zIndex: 2
   },
   centerMarkerLeft: {
     position: "absolute",
-    left: "-8px",
-    top: `${ITEM_HEIGHT * CENTER_INDEX + 16}px`,
+    left: "-6px",
+    top: `${ITEM_HEIGHT * CENTER_INDEX + 14}px`,
     color: "#e11d48",
-    fontSize: "20px",
+    fontSize: "18px",
     zIndex: 10
   },
   centerMarkerRight: {
     position: "absolute",
-    right: "-8px",
-    top: `${ITEM_HEIGHT * CENTER_INDEX + 16}px`,
+    right: "-6px",
+    top: `${ITEM_HEIGHT * CENTER_INDEX + 14}px`,
     color: "#e11d48",
-    fontSize: "20px",
+    fontSize: "18px",
     zIndex: 10
   },
   slotViewport: {
@@ -338,8 +273,8 @@ const styles = {
     height: "100%",
     overflow: "hidden",
     position: "relative",
-    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 35%, black 65%, transparent 100%)",
-    maskImage: "linear-gradient(to bottom, transparent 0%, black 35%, black 65%, transparent 100%)"
+    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)",
+    maskImage: "linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)"
   },
   slotTrack: {
     paddingTop: `${ITEM_HEIGHT * CENTER_INDEX}px`,
@@ -350,80 +285,76 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxSizing: "border-box"
+    boxSizing: "border-box",
+    padding: "0 10px"
   },
   slotItemText: {
-    fontSize: "17px",
+    fontSize: "16px",
     fontWeight: "700",
     color: "#1e293b",
-    letterSpacing: "0.3px",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    maxWidth: "320px",
+    maxWidth: "280px",
     textAlign: "center"
   },
   button: {
+    width: "100%",
+    maxWidth: "340px",
     backgroundColor: "#16a34a",
     color: "#ffffff",
     border: "none",
-    padding: "14px 34px",
+    padding: "14px 20px",
     fontSize: "16px",
     fontWeight: "700",
     borderRadius: "10px",
     cursor: "pointer",
-    boxShadow: "0 4px 12px rgba(22, 163, 74, 0.28)",
-    transition: "background 0.2s ease"
+    boxShadow: "0 4px 12px rgba(22, 163, 74, 0.25)"
   },
   buttonDisabled: {
     backgroundColor: "#94a3b8",
     boxShadow: "none",
     cursor: "not-allowed"
   },
-  rightColumn: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+  resultSection: {
     width: "100%",
-    height: "100%",
-    maxHeight: "460px"
+    display: "flex",
+    justifyContent: "center"
   },
   winnerCard: {
     backgroundColor: "#ffffff",
     border: "2px solid #22c55e",
-    borderRadius: "14px",
-    padding: "22px 24px",
+    borderRadius: "12px",
+    padding: "16px",
     width: "100%",
-    maxWidth: "460px",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.07)",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
     textAlign: "center",
     boxSizing: "border-box",
     display: "flex",
     flexDirection: "column",
-    gap: "10px"
+    gap: "8px"
   },
   placeholderCard: {
     backgroundColor: "#ffffff",
-    border: "2px dashed #cbd5e1",
-    borderRadius: "14px",
-    padding: "40px 24px",
+    border: "1px dashed #cbd5e1",
+    borderRadius: "12px",
+    padding: "18px 12px",
     width: "100%",
-    maxWidth: "460px",
     textAlign: "center",
     boxSizing: "border-box"
   },
   badge: {
     alignSelf: "center",
-    padding: "4px 12px",
+    padding: "3px 10px",
     backgroundColor: "#dcfce7",
     color: "#15803d",
     fontWeight: "700",
     fontSize: "11px",
-    borderRadius: "16px",
+    borderRadius: "14px",
     textTransform: "uppercase"
   },
   greeting: {
-    fontSize: "20px",
+    fontSize: "17px",
     fontWeight: "800",
     margin: "0",
     color: "#0f172a",
@@ -431,13 +362,13 @@ const styles = {
   },
   commentBox: {
     backgroundColor: "#f8fafc",
-    padding: "10px 14px",
+    padding: "10px 12px",
     borderRadius: "8px",
-    borderLeft: "4px solid #22c55e",
+    borderLeft: "3px solid #22c55e",
     textAlign: "left"
   },
   commentLabel: {
-    fontSize: "11px",
+    fontSize: "10px",
     fontWeight: "bold",
     color: "#64748b",
     textTransform: "uppercase",
@@ -445,12 +376,10 @@ const styles = {
   },
   commentText: {
     margin: 0,
-    fontSize: "14px",
+    fontSize: "13px",
     color: "#1e293b",
     lineHeight: "1.4",
-    wordBreak: "break-word",
-    maxHeight: "85px",
-    overflowY: "auto"
+    wordBreak: "break-word"
   },
   mediaContainer: {
     display: "flex",
@@ -458,8 +387,8 @@ const styles = {
   },
   media: {
     maxWidth: "100%",
-    maxHeight: "130px",
-    borderRadius: "8px",
+    maxHeight: "120px",
+    borderRadius: "6px",
     objectFit: "contain"
   },
   linkButton: {
@@ -470,9 +399,9 @@ const styles = {
     color: "#ffffff",
     textDecoration: "none",
     fontWeight: "700",
-    padding: "10px 20px",
+    padding: "10px 16px",
     borderRadius: "8px",
-    fontSize: "14px",
-    boxShadow: "0 2px 8px rgba(24, 119, 242, 0.25)"
+    fontSize: "13px",
+    boxShadow: "0 2px 6px rgba(24, 119, 242, 0.2)"
   }
 };
