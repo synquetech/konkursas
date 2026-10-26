@@ -13,6 +13,7 @@ export default function App() {
   
   const [juosta, setJuosta] = useState([]);
   const [offsetY, setOffsetY] = useState(0);
+  const [nukopijuota, setNukopijuota] = useState(false);
 
   const requestRef = useRef(null);
 
@@ -39,11 +40,34 @@ export default function App() {
       });
   }, []);
 
+  // Suformuoja tiesioginę mobiliesiems pritaikytą komentaro nuorodą
+  const suformuotiMobiliaNuoroda = (item) => {
+    if (!item) return "";
+    let rawLink = item.nuoroda || "";
+    
+    // Ištraukiame komentaro ID iš autoriaus arba nuorodos
+    let cid = "";
+    if (item.autorius && item.autorius.includes("#")) {
+      cid = item.autorius.split("#")[1].trim();
+    } else {
+      const match = rawLink.match(/(\d+_\d+|\d+)$/);
+      if (match) cid = match[0].split("_").pop();
+    }
+
+    const postId = "122138258163163355";
+    if (cid) {
+      // Šis formatas mobiliajame tiesiogiai paryškina ir iškelia komentarą
+      return `https://m.facebook.com/story.php?story_fbid=${postId}&id=931951470000304&comment_id=${cid}`;
+    }
+    return rawLink;
+  };
+
   const suktiLista = () => {
     if (sukasi || dalyviai.length === 0) return;
 
     setSukasi(true);
     setLaimetojas(null);
+    setNukopijuota(false);
 
     const tikrasLaimetojas = dalyviai[Math.floor(Math.random() * dalyviai.length)];
     const zingsniuKiekis = 45; 
@@ -86,19 +110,26 @@ export default function App() {
           origin: { y: 0.6 }
         });
 
-        if (tikrasLaimetojas?.nuoroda) {
+        const tikslusLinkas = suformuotiMobiliaNuoroda(tikrasLaimetojas);
+        if (tikslusLinkas) {
           setTimeout(() => {
-            const naujasLangas = window.open(tikrasLaimetojas.nuoroda, "_blank");
-            if (!naujasLangas || naujasLangas.closed || typeof naujasLangas.closed === "undefined") {
-              window.location.href = tikrasLaimetojas.nuoroda;
-            }
-          }, 1400);
+            window.location.href = tikslusLinkas;
+          }, 1500);
         }
       }
     };
 
     requestRef.current = requestAnimationFrame(animuoti);
   };
+
+  const kopijuotiTeksta = () => {
+    if (!laimetojas) return;
+    navigator.clipboard.writeText(laimetojas.autorius + " " + laimetojas.tekstas);
+    setNukopijuota(true);
+    setTimeout(() => setNukopijuota(false), 2000);
+  };
+
+  const mobilusLink = suformuotiMobiliaNuoroda(laimetojas);
 
   return (
     <div style={styles.appWrapper}>
@@ -161,16 +192,19 @@ export default function App() {
                 </div>
               )}
 
-              {laimetojas.nuoroda && (
-                <a
-                  href={laimetojas.nuoroda}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={styles.linkButton}
-                >
-                  👉 Atidaryti komentarą Facebooke
-                </a>
-              )}
+              <div style={styles.actionRow}>
+                {mobilusLink && (
+                  <a
+                    href={mobilusLink}
+                    style={styles.linkButton}
+                  >
+                    👉 Atidaryti komentarą
+                  </a>
+                )}
+                <button onClick={kopijuotiTeksta} style={styles.copyBtn}>
+                  {nukopijuota ? "✓ Nukopijuota!" : "📋 Kopijuoti info"}
+                </button>
+              </div>
             </div>
           ) : (
             <div style={styles.placeholderCard}>
@@ -391,17 +425,29 @@ const styles = {
     borderRadius: "6px",
     objectFit: "contain"
   },
+  actionRow: {
+    display: "flex",
+    gap: "8px",
+    justifyContent: "center",
+    marginTop: "6px"
+  },
   linkButton: {
-    display: "inline-block",
-    alignSelf: "center",
-    marginTop: "4px",
     backgroundColor: "#1877f2",
     color: "#ffffff",
     textDecoration: "none",
     fontWeight: "700",
-    padding: "10px 16px",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    fontSize: "13px"
+  },
+  copyBtn: {
+    backgroundColor: "#e2e8f0",
+    color: "#334155",
+    border: "none",
+    fontWeight: "600",
+    padding: "10px 12px",
     borderRadius: "8px",
     fontSize: "13px",
-    boxShadow: "0 2px 6px rgba(24, 119, 242, 0.2)"
+    cursor: "pointer"
   }
 };
