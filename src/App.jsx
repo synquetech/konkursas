@@ -17,7 +17,7 @@ export default function App() {
   const requestRef = useRef(null);
 
   useEffect(() => {
-    fetch(import.meta.env.BASE_URL + "komentarai.json")
+    fetch(import.meta.env.BASE_URL + "komentarai.json?v=" + Date.now())
       .then((res) => {
         if (!res.ok) throw new Error("Nerastas failas");
         return res.json();
@@ -33,22 +33,19 @@ export default function App() {
         }
       })
       .catch((err) => {
-        console.error("Klaida kraunant komentarai.json", err);
+        console.error("Klaida", err);
       });
   }, []);
 
-  // Ištraukia tikslų komentaro ID ir suformuoja tiesioginę mobilios naršyklės nuorodą
   const suformuotiTiksluLinka = (item) => {
     if (!item) return "";
     let raw = item.nuoroda || "";
     let commentId = "";
 
-    // 1. Tikriname autoriaus eilutę (pvz., Dalyvis #123456789)
     if (item.autorius && item.autorius.includes("#")) {
       commentId = item.autorius.split("#")[1].trim();
     }
     
-    // 2. Jei nerado, traukiame iš paties URL
     if (!commentId && raw) {
       const match = raw.match(/comment_id=(\d+)/) || raw.match(/(\d+_\d+|\d+)$/);
       if (match) {
@@ -57,7 +54,6 @@ export default function App() {
     }
 
     if (commentId) {
-      // Šis formatas mobiliojoje naršyklėje atidaro ir paryškina tiesiogiai tą komentarą
       return `https://m.facebook.com/122138258163163355?comment_id=${commentId}&force_view=1#${commentId}`;
     }
     return raw;
@@ -194,10 +190,7 @@ export default function App() {
 
               <div style={styles.actionRow}>
                 {mobilusLink && (
-                  <a
-                    href={mobilusLink}
-                    style={styles.linkButton}
-                  >
+                  <a href={mobilusLink} style={styles.linkButton}>
                     👉 Atidaryti komentarą
                   </a>
                 )}
