@@ -19,7 +19,7 @@ export default function App() {
   const appContainerRef = useRef(null);
 
   useEffect(() => {
-    fetch("/komentarai.json")
+    fetch(import.meta.env.BASE_URL + "komentarai.json")
       .then((res) => {
         if (!res.ok) throw new Error("Nerastas failas");
         return res.json();
