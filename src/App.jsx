@@ -9,7 +9,6 @@ export default function App() {
   const [dalyviai, setDalyviai] = useState([]);
   const [sukasi, setSukasi] = useState(false);
   const [laimetojas, setLaimetojas] = useState(null);
-  const [statusas, setStatusas] = useState("Kraunami komentarai...");
   
   const [juosta, setJuosta] = useState([]);
   const [offsetY, setOffsetY] = useState(0);
@@ -25,8 +24,6 @@ export default function App() {
       })
       .then((data) => {
         setDalyviai(data);
-        setStatusas(`Dalyvauja komentarų: ${data.length}`);
-        
         if (data.length > 0) {
           let pradinis = [];
           for (let i = 0; i < 20; i++) {
@@ -35,31 +32,35 @@ export default function App() {
           setJuosta(pradinis);
         }
       })
-      .catch(() => {
-        setStatusas("Klaida kraunant komentarai.json");
+      .catch((err) => {
+        console.error("Klaida kraunant komentarai.json", err);
       });
   }, []);
 
-  // Suformuoja tiesioginę mobiliesiems pritaikytą komentaro nuorodą
-  const suformuotiMobiliaNuoroda = (item) => {
+  // Ištraukia tikslų komentaro ID ir suformuoja tiesioginę mobilios naršyklės nuorodą
+  const suformuotiTiksluLinka = (item) => {
     if (!item) return "";
-    let rawLink = item.nuoroda || "";
-    
-    // Ištraukiame komentaro ID iš autoriaus arba nuorodos
-    let cid = "";
+    let raw = item.nuoroda || "";
+    let commentId = "";
+
+    // 1. Tikriname autoriaus eilutę (pvz., Dalyvis #123456789)
     if (item.autorius && item.autorius.includes("#")) {
-      cid = item.autorius.split("#")[1].trim();
-    } else {
-      const match = rawLink.match(/(\d+_\d+|\d+)$/);
-      if (match) cid = match[0].split("_").pop();
+      commentId = item.autorius.split("#")[1].trim();
+    }
+    
+    // 2. Jei nerado, traukiame iš paties URL
+    if (!commentId && raw) {
+      const match = raw.match(/comment_id=(\d+)/) || raw.match(/(\d+_\d+|\d+)$/);
+      if (match) {
+        commentId = match[1].split("_").pop();
+      }
     }
 
-    const postId = "122138258163163355";
-    if (cid) {
-      // Šis formatas mobiliajame tiesiogiai paryškina ir iškelia komentarą
-      return `https://m.facebook.com/story.php?story_fbid=${postId}&id=931951470000304&comment_id=${cid}`;
+    if (commentId) {
+      // Šis formatas mobiliojoje naršyklėje atidaro ir paryškina tiesiogiai tą komentarą
+      return `https://m.facebook.com/122138258163163355?comment_id=${commentId}&force_view=1#${commentId}`;
     }
-    return rawLink;
+    return raw;
   };
 
   const suktiLista = () => {
@@ -110,7 +111,7 @@ export default function App() {
           origin: { y: 0.6 }
         });
 
-        const tikslusLinkas = suformuotiMobiliaNuoroda(tikrasLaimetojas);
+        const tikslusLinkas = suformuotiTiksluLinka(tikrasLaimetojas);
         if (tikslusLinkas) {
           setTimeout(() => {
             window.location.href = tikslusLinkas;
@@ -129,13 +130,12 @@ export default function App() {
     setTimeout(() => setNukopijuota(false), 2000);
   };
 
-  const mobilusLink = suformuotiMobiliaNuoroda(laimetojas);
+  const mobilusLink = suformuotiTiksluLinka(laimetojas);
 
   return (
     <div style={styles.appWrapper}>
       <header style={styles.header}>
         <h1 style={styles.title}>MONI MIX Sushi padėklo konkursas 🍣</h1>
-        <p style={styles.subtitle}>{statusas}</p>
       </header>
 
       <main style={styles.mainContent}>
@@ -230,23 +230,18 @@ const styles = {
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     display: "flex",
     flexDirection: "column",
-    padding: "16px 12px 24px 12px"
+    padding: "20px 12px 28px 12px"
   },
   header: {
     textAlign: "center",
-    marginBottom: "12px",
+    marginBottom: "16px",
     flexShrink: 0
   },
   title: {
     fontSize: "20px",
     fontWeight: "800",
-    margin: "0 0 4px 0",
+    margin: 0,
     color: "#0f172a"
-  },
-  subtitle: {
-    fontSize: "13px",
-    color: "#64748b",
-    margin: 0
   },
   mainContent: {
     display: "flex",
